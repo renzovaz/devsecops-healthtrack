@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@healthtrack/core": "1.0.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "lodash": "4.17.20"
   }
 }
