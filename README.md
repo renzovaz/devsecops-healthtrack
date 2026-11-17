@@ -4,8 +4,8 @@ Trabalho acadêmico da disciplina **Desenvolvimento Back-end**, curso de **Engen
 Autores: Renzo Machado Alves Vaz, Eric Kelvin Silva e Kaio Vinicius Aguiar Franca.
 
 - **Apresentação (GitHub Pages):** https://renzovaz.github.io/devsecops-healthtrack/
-- **Run verde da `main`:** _(link adicionado após o primeiro push)_
-- **Run vermelho do PR com dependência vulnerável:** _(link adicionado após abrir o PR)_
+- **Run verde da `main` (6/6 jobs):** https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44114966187
+- **Run vermelho do [PR #1](https://github.com/renzovaz/devsecops-healthtrack/pull/1) com dependência vulnerável** (`sca` falhou; `image` não executou): https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44115104708
 
 > **A API roda no navegador e em container local; a AWS está representada pela arquitetura e pelo CDK validado, sem deploy.**
 > A HealthTrack Solutions é uma empresa **fictícia**, e todas as métricas do estudo de caso são **hipotéticas**. As ferramentas, serviços e práticas são reais.
