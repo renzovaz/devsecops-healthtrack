@@ -73,11 +73,18 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: npm audit (aplicação)
-        run: npm audit --audit-level=high
-      - name: npm audit (infraestrutura CDK)
-        run: npm audit --audit-level=high
+      # Gate em dependências de produção (as que vão para a imagem e para o synth).
+      # Alertas sem correção em ferramentas de teste (devDependencies) não bloqueiam;
+      # o relatório completo continua visível no passo seguinte.
+      - name: npm audit (aplicação, dependências de produção)
+        run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (infraestrutura CDK, dependências de produção)
+        run: npm audit --omit=dev --audit-level=high
         working-directory: infra
+      - name: npm audit completo (informativo, inclui devDependencies)
+        run: |
+          npm audit || true
+          (cd infra && npm audit) || true
       - name: Trivy fs (dependências declaradas nos lockfiles)
         run: >
           docker run --rm -v "$PWD:/src:ro" "$TRIVY_IMAGE"

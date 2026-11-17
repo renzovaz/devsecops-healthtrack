@@ -96,7 +96,7 @@ Equivalente didático do CodePipeline + CodeBuild do estudo (seção 5.6):
 |:--|:--|:--|
 | `test` | Jest (núcleo e API) + verificação do JS commitado | `npm test` |
 | `sast` | CodeQL (`security-extended`) | SonarQube |
-| `sca` | `npm audit --audit-level=high` (app e infra) + Trivy fs | Snyk |
+| `sca` | `npm audit --omit=dev --audit-level=high` (app e infra) + Trivy fs; relatório completo (com devDependencies) só informativo | Snyk |
 | `secrets` | gitleaks em todo o histórico | git-secrets |
 | `iac` | Jest da stack + `cdk synth` com cdk-nag | `cdk synth` + Checkov |
 | `image` | `docker build` com tag = SHA do commit + Trivy (HIGH/CRITICAL com correção bloqueiam); só roda se todos os gates passaram | build, Trivy e push para o ECR |
@@ -113,7 +113,10 @@ Dois achados foram **corrigidos**, não suprimidos: `AwsSolutions-ECS2` (as vari
 | `AwsSolutions-IAM5[Resource::*]` | Política da execution role | O curinga vem de `ecr:GetAuthorizationToken`, ação que não aceita restrição por recurso. Verificado no template: é o único `Resource: "*"`. As demais permissões usam ARNs específicos. |
 | `AwsSolutions-S1` | Bucket de logs de acesso do ALB | Ele já é o destino de logs; ativar server access logs nele exigiria outro bucket de logs (recursão). O bucket tem acesso público bloqueado, SSL obrigatório, criptografia e versionamento. |
 
-Observação do `npm audit` na infraestrutura: há 3 vulnerabilidades **moderadas** no `minimatch`, dependência transitiva do `aws-cdk-lib`. A única correção sugerida rebaixa o `aws-cdk-lib` (mudança incompatível). O gate do CI bloqueia a partir de **high**.
+Observações do `npm audit`:
+
+- **Gate só em dependências de produção.** Em novembro de 2026 surgiu um alerta high no `picomatch` ([GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf), ReDoS), ainda sem versão corrigida. Ele chega apenas pelas ferramentas de teste (Jest), que não vão para a imagem nem para o synth. Por isso o gate usa `--omit=dev`; o relatório completo continua no log, como passo informativo. A `lodash` da demonstração é dependência de **produção** da API, então continua bloqueada.
+- Na infraestrutura há 3 vulnerabilidades **moderadas** no `minimatch`, dependência transitiva do `aws-cdk-lib`. A única correção sugerida rebaixa o `aws-cdk-lib` (mudança incompatível). O gate bloqueia a partir de **high**.
 
 ## Demonstração de falha proposital
 
