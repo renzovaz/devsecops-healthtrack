@@ -4,8 +4,8 @@ Trabalho acadêmico da disciplina **Desenvolvimento Back-end**, curso de **Engen
 Autores: Renzo Machado Alves Vaz, Eric Kelvin Silva e Kaio Vinicius Aguiar Franca.
 
 - **Apresentação (GitHub Pages):** https://renzovaz.github.io/devsecops-healthtrack/
-- **Run verde da `main` (6/6 jobs):** https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44114966187
-- **Run vermelho do [PR #1](https://github.com/renzovaz/devsecops-healthtrack/pull/1) com dependência vulnerável** (`sca` falhou; `image` não executou): https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44115104708
+- **Run verde da `main` (6/6 jobs):** https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44150184259
+- **Run vermelho do [PR #2](https://github.com/renzovaz/devsecops-healthtrack/pull/2) com dependência vulnerável** (`sca` falhou; `image` não executou): https://github.com/renzovaz/devsecops-healthtrack/actions/runs/44150236212
 
 > **A API roda no navegador e em container local; a AWS está representada pela arquitetura e pelo CDK validado, sem deploy.**
 > A HealthTrack Solutions é uma empresa **fictícia**, e todas as métricas do estudo de caso são **hipotéticas**. As ferramentas, serviços e práticas são reais.
@@ -120,7 +120,7 @@ Observações do `npm audit`:
 
 ## Demonstração de falha proposital
 
-O branch `demo/dependencia-vulneravel` (PR aberto e **não** mesclado) adiciona apenas `lodash@4.17.20`, versão legítima e antiga com vulnerabilidades **high** conhecidas ([GHSA-35jh-r3h4-6jhm](https://github.com/advisories/GHSA-35jh-r3h4-6jhm), [GHSA-r5fr-rjxr-66jc](https://github.com/advisories/GHSA-r5fr-rjxr-66jc)). O job `sca` falha e o job `image` não executa. Não há pacote malicioso nem segredo nesse branch.
+O branch `demo/dependencia-vulneravel-v2` ([PR #2](https://github.com/renzovaz/devsecops-healthtrack/pull/2), em rascunho, aberto e **não** mesclado) adiciona apenas `lodash@4.17.20`, versão legítima e antiga com vulnerabilidades **high** conhecidas ([GHSA-35jh-r3h4-6jhm](https://github.com/advisories/GHSA-35jh-r3h4-6jhm), [GHSA-r5fr-rjxr-66jc](https://github.com/advisories/GHSA-r5fr-rjxr-66jc)). O job `sca` falha e o job `image` não executa. Não há pacote malicioso nem segredo nesse branch.
 
 ## Licença
 
