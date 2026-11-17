@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevSecOps HealthTrack</title>
+<meta name="description" content="DevOps e DevSecOps na AWS: estudo de caso HealthTrack Solutions (empresa fictícia). Disciplina Desenvolvimento Back-end, CEUB.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M2 18h7l3-9 5 16 3-7h10' fill='none' stroke='%230f6e6e' stroke-width='3'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="env-warning" id="env-warning" role="alert" hidden></div>
+<p class="sr-only" aria-live="polite" id="sr-status"></p>
+
+<div id="canvas">
+<main class="deck" id="deck">
+
+<!-- 1 · CAPA -->
+<section class="slide cover" id="capa" data-stage="none" aria-label="Capa"
+  data-sec="A segurança acompanha todas as etapas do ciclo: é uma camada, não um bloco">
+  <svg class="cover-ecg" viewBox="0 0 900 70" aria-hidden="true"><path d="M0 40 H260 l18 -30 l22 58 l20 -46 l14 18 H520 l12 -18 l16 36 l12 -18 H900"/></svg>
+  <h1>DevOps e DevSecOps na AWS</h1>
+  <p class="sub">Um estudo de caso aplicado ao desenvolvimento back-end: <strong>HealthTrack Solutions</strong> <span class="badge hip" title="Empresa e métricas fictícias">Hipotético</span></p>
+  <p class="question"><strong>Pergunta central:</strong> como uma equipe de desenvolvimento back-end pode entregar software de forma rápida, segura e confiável na AWS?</p>
+  <div class="authors">
+    <span><strong>Renzo Machado Alves Vaz</strong> · <strong>Eric Kelvin Silva</strong> · <strong>Kaio Vinicius Aguiar Franca</strong></span>
+    <span class="muted">Desenvolvimento Back-end · Engenharia de Software · CEUB · Novembro de 2026</span>
+    <span class="muted">Navegue com ← → (ou espaço), Home/End, ou deslizando o dedo.</span>
+  </div>
+</section>
+
+<!-- 2 · FUNDAMENTOS -->
+<section class="slide" id="fundamentos" data-stage="none" aria-label="Fundamentos"
+  data-sec="Shift Left: a segurança é verificada desde as fases iniciais, não só no fim">
+  <div class="slide-head"><h2>Fundamentos: DevOps, DevSecOps e métricas DORA</h2></div>
+  <div class="cols">
+    <div class="col">
+      <div class="card">
+        <p><strong>DevOps</strong> (<em>Development</em> + <em>Operations</em>) é uma <strong>cultura organizacional</strong> apoiada por práticas técnicas e automação: integra desenvolvimento e operações com responsabilidade compartilhada, integração e entrega contínuas (CI/CD, <em>Continuous Integration / Continuous Delivery</em>) e ciclos rápidos de retroalimentação. Não é ferramenta, cargo nem produto.</p>
+      </div>
+      <div class="card small">
+        <strong>CALMS</strong>: <strong>C</strong>ultura (sem cultura da culpa) · <strong>A</strong>utomação (testes, IaC, CI/CD) · <strong>L</strong>ean (pequenos lotes) · <strong>M</strong>edição · <strong>S</strong>haring (compartilhamento)
+      </div>
+      <div class="card">
+        <p><strong>DevSecOps</strong> integra segurança (<em>Security</em>) a todas as fases. <strong>Shift Left</strong>: deslocar as verificações para o início, porque quanto mais tarde uma falha é encontrada, mais cara é a correção. DevSecOps <strong>não substitui</strong> o DevOps: é uma evolução dele.</p>
+      </div>
+      <p class="small"><a class="badge doc" href="https://aws.amazon.com/devops/what-is-devops/" target="_blank" rel="noopener">Documentado: AWS</a></p>
+    </div>
+    <div class="col">
+      <h3>5 métricas DORA (DevOps Research and Assessment, 2024) <a class="badge doc" href="https://dora.dev/guides/dora-metrics/" target="_blank" rel="noopener">Documentado: dora.dev</a></h3>
+      <table class="t">
+        <thead><tr><th>Métrica</th><th>Fator</th><th>Elite (2024)</th></tr></thead>
+        <tbody>
+          <tr><td>Lead time de mudanças</td><td>Vazão</td><td>&lt; 1 dia</td></tr>
+          <tr><td>Frequência de deploy</td><td>Vazão</td><td>Sob demanda (várias/dia)</td></tr>
+          <tr><td>Recuperação de deploy com falha</td><td>Vazão</td><td>&lt; 1 hora</td></tr>
+          <tr><td>Taxa de falha de mudanças</td><td>Instabilidade</td><td>5%</td></tr>
+          <tr><td>Taxa de retrabalho de deploys</td><td>Instabilidade</td><td>(nova em 2024)</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Velocidade e estabilidade <strong>não</strong> são objetivos conflitantes: equipes de alta performance alcançam ambas. <a class="badge doc" href="https://dora.dev/research/2024/dora-report/" target="_blank" rel="noopener">Relatório DORA 2024, p. 11–13</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · O CICLO + HEALTHTRACK -->
+<section class="slide" id="ciclo" data-stage="none" aria-label="O ciclo e o estudo de caso"
+  data-sec="Camada transversal: a segurança está presente em DEV, CI, CD, MON e FEEDBACK">
+  <div class="slide-head"><h2>O ciclo que guia a apresentação</h2></div>
+  <div class="cols c-40-60">
+    <div class="ring-wrap">
+      <div class="ring" id="ring" role="group" aria-label="Ciclo DevOps/DevSecOps: clique em uma etapa para ir ao slide dela"></div>
+    </div>
+    <div class="col">
+      <h3>Estudo de caso: HealthTrack Solutions <span class="badge hip">Hipotético</span></h3>
+      <div class="card case small">
+        <p>Startup brasileira de saúde (<em>healthtech</em>): <strong>25 colaboradores</strong>, <strong>12 engenheiros</strong>. Plataforma de agendamento, prontuários e prescrições, hoje um <strong>monolito</strong> Node.js/Express em um único EC2.</p>
+      </div>
+      <table class="t">
+        <thead><tr><th>Problema</th><th>Etapa que resolve</th></tr></thead>
+        <tbody>
+          <tr><td>Deploys manuais, quinzenais, de madrugada, com 3–4 engenheiros</td><td>CI · CD</td></tr>
+          <tr><td>4 incidentes em 6 meses; recuperação média de 3 horas</td><td>CD · MON</td></tr>
+          <tr><td>Credenciais no código; políticas IAM com <code>*</code></td><td>SEC (todas)</td></tr>
+          <tr><td>Lentidão no pico; escala manual do EC2</td><td>CD (Fargate)</td></tr>
+          <tr><td>Diagnóstico via SSH e logs locais</td><td>MON · FEEDBACK</td></tr>
+          <tr><td>Conformidade com a LGPD (Lei Geral de Proteção de Dados)</td><td>SEC (todas)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · DEV -->
+<section class="slide" id="dev" data-stage="dev" aria-label="Etapa 1: desenvolvimento back-end"
+  data-sec="git-secrets no pré-commit · branch protection com revisão obrigatória · revisão de PR com Amazon Q Developer e Inspector Code Security">
+  <div class="slide-head"><span class="stage-pill">Etapa 1 · DEV</span><h2>Desenvolvimento: código, containers e IaC</h2></div>
+  <div class="cols">
+    <div class="col">
+      <h3>Conceito e AWS <span class="badge doc">Documentado</span></h3>
+      <ul class="tight">
+        <li><strong>Git + GitHub</strong>: branches, Pull Request (PR) e <em>branch protection</em>; integração com a AWS via <a href="https://docs.aws.amazon.com/dtconsole/latest/userguide/welcome-connections.html" target="_blank" rel="noopener">AWS CodeConnections</a>.</li>
+        <li><strong>Containers (Docker)</strong>: o mesmo artefato roda no notebook, no CI e em produção; imagem mínima <code>node:20-alpine</code> e build <em>multi-stage</em>.</li>
+        <li><strong>Infraestrutura como Código (IaC)</strong> com <a href="https://docs.aws.amazon.com/cdk/v2/guide/" target="_blank" rel="noopener">AWS CDK</a>: versionada, revisável em PR e testável com Jest.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Na HealthTrack <span class="badge hip">Hipotético</span></h3>
+      <div class="card case small">
+        <p>O monolito vira <strong>5 microsserviços</strong> Node.js/Express, cada um com imagem Docker e pipeline próprios: <code>auth</code>, <code>patient</code>, <code>scheduling</code>, <code>prescription</code>, <code>notification</code>. Decisões: <strong>ECS com Fargate</strong> (equipe pequena, sem Kubernetes) e <strong>CDK em TypeScript</strong> (mesma linguagem da equipe).</p>
+      </div>
+      <h3>Neste repositório <span class="badge impl">Implementado</span></h3>
+      <ul class="tight small">
+        <li><a href="https://github.com/renzovaz/devsecops-healthtrack/blob/main/api/Dockerfile" target="_blank" rel="noopener"><code>api/Dockerfile</code></a>: multi-stage, <code>node:20-alpine</code>, usuário não-root, <code>HEALTHCHECK</code>, só dependências de produção.</li>
+        <li><a href="https://github.com/renzovaz/devsecops-healthtrack/blob/main/infra/lib/scheduling-service-stack.ts" target="_blank" rel="noopener"><code>infra/</code></a>: stack CDK do <code>scheduling-service</code> (VPC, ECS Fargate, ALB interno, Secrets Manager, logs e alarmes).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · IMPLEMENTAÇÃO: NÚCLEO + CLIENTE DE API -->
+<section class="slide" id="implementacao" data-stage="dev" aria-label="Implementação prática do scheduling-service"
+  data-sec="JWT validado uma única vez (papel do autorizador do API Gateway) · logs sem dados de paciente (LGPD)">
+  <div class="slide-head"><span class="stage-pill">Etapa 1 · DEV</span><h2>Implementação: o núcleo do <code>scheduling-service</code></h2><span class="badge impl">Implementado</span></div>
+  <p class="small">TypeScript puro com <em>ports &amp; adapters</em>: banco (RDS), cache (ElastiCache), fila (SQS), relógio e logger entram por interfaces; aqui os adapters são <strong>em memória</strong>. O <strong>mesmo código compilado</strong> roda abaixo, no navegador, e atrás de um Express no container. O módulo <code>edge</code> faz o papel do API Gateway (throttling + autorizador JWT, executado uma vez); o <code>scheduling</code> aplica a regra de negócio. Médicos e IDs são fictícios <span class="badge hip">Hipotético</span></p>
+  <div class="demo" id="api-demo">
+    <div class="toolbar" role="group" aria-label="Cenários prontos">
+      <button class="btn" data-scenario="ok">201 · agendamento válido</button>
+      <button class="btn" data-scenario="badtoken">401 · token inválido</button>
+      <button class="btn" data-scenario="conflict">409 · horário ocupado</button>
+      <button class="btn" data-scenario="ratelimit">429 · excesso de requisições</button>
+      <button class="btn quick" data-action="quick">▶ Modo rápido: os 4 cenários</button>
+      <button class="btn" data-action="reset">Reset</button>
+    </div>
+    <div class="api-grid">
+      <div class="col">
+        <div><label for="api-route">Requisição</label>
+          <select id="api-route">
+            <option value="POST /v1/appointments">POST /v1/appointments</option>
+            <option value="GET /v1/availability?doctorId=doctor-001&amp;date=2026-11-20">GET /v1/availability?doctorId=doctor-001&amp;date=2026-11-20</option>
+            <option value="GET /health">GET /health</option>
+          </select></div>
+        <div><label for="api-token">Authorization: Bearer (gerado nesta sessão; editável)</label><textarea id="api-token" rows="2" spellcheck="false"></textarea></div>
+        <div><label for="api-body">Corpo JSON (editável)</label><textarea id="api-body" rows="5" spellcheck="false"></textarea></div>
+        <button class="btn primary" data-action="send">Enviar requisição</button>
+      </div>
+      <div class="out" aria-live="polite">
+        <div><h4>Resposta HTTP <span class="http-status" id="api-status">—</span></h4><pre class="code" id="api-response">Escolha um cenário ou envie uma requisição.</pre></div>
+        <div><h4>Evento que iria para o SQS</h4><pre class="code" id="api-event">— (só existe quando um agendamento é criado)</pre></div>
+        <div><h4>Log estruturado (JSON)</h4><pre class="code" id="api-log">—</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · CI -->
+<section class="slide" id="ci" data-stage="ci" aria-label="Etapa 2: integração contínua"
+  data-sec="Gates de segurança no CI: SAST, SCA, segredos, IaC e imagem; achados Critical/High bloqueiam o deploy">
+  <div class="slide-head"><span class="stage-pill">Etapa 2 · CI</span><h2>Integração contínua: do buildspec ao GitHub Actions</h2></div>
+  <div class="cols c-40-60">
+    <div class="col">
+      <h3>Equivalência didática <span class="badge doc">Estudo, seção 5.6</span> <span class="badge impl">Implementado</span></h3>
+      <table class="t">
+        <thead><tr><th>CodePipeline + CodeBuild (estudo)</th><th>GitHub Actions (este repo)</th></tr></thead>
+        <tbody>
+          <tr><td>Source: GitHub via CodeConnections</td><td><code>on: push / pull_request</code></td></tr>
+          <tr><td><code>npm test</code></td><td>job <code>test</code> (Jest)</td></tr>
+          <tr><td>SAST: <code>sonar-scanner</code></td><td>job <code>sast</code> (CodeQL)</td></tr>
+          <tr><td>SCA: <code>snyk test</code></td><td>job <code>sca</code> (npm audit + Trivy fs)</td></tr>
+          <tr><td>git-secrets (pré-commit)</td><td>job <code>secrets</code> (gitleaks)</td></tr>
+          <tr><td>IaC: <code>cdk synth</code> + Checkov</td><td>job <code>iac</code> (cdk synth + cdk-nag)</td></tr>
+          <tr><td>Build tag = SHA, Trivy, push ECR</td><td>job <code>image</code>: tag = SHA, Trivy, <strong>sem push</strong></td></tr>
+          <tr><td><code>on-failure: ABORT</code></td><td><code>needs:</code> todos os gates</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      <h3>Demo: o gate bloqueia o deploy <span class="badge impl">Simulação dos jobs reais</span></h3>
+      <div class="demo" id="pipe-demo">
+        <div class="toolbar">
+          <button class="btn danger" data-inject="secret" aria-pressed="false">Injetar segredo falso</button>
+          <button class="btn danger" data-inject="dep" aria-pressed="false">Adicionar lodash@4.17.20</button>
+          <button class="btn primary" data-action="run">Executar pipeline</button>
+          <button class="btn quick" data-action="quick">▶ Modo rápido</button>
+          <button class="btn" data-action="reset">Reset</button>
+        </div>
+        <pre class="code" id="pipe-diff">// commit: nenhuma alteração injetada</pre>
+        <div class="pipeline" id="pipeline"></div>
+        <p class="status-line" id="pipe-status" aria-live="polite">Pronto. Injete um problema ou execute o pipeline limpo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · SEC (transversal) -->
+<section class="slide" id="seguranca" data-stage="sec" aria-label="Etapa 3: segurança como camada transversal"
+  data-sec="Defesa em profundidade: código, build, infraestrutura e runtime (todas as etapas)">
+  <div class="slide-head"><span class="stage-pill">Etapa 3 · SEC</span><h2>Segurança não é uma etapa: é uma camada</h2><span class="badge doc">Documentado</span></div>
+  <div class="cols c-60-40">
+    <div class="col">
+      <table class="t">
+        <thead><tr><th>Etapa</th><th>Controle</th><th>Na HealthTrack</th></tr></thead>
+        <tbody>
+          <tr><td>DEV · código</td><td>Prevenção de segredos, revisão de PR</td><td>git-secrets; branch protection; Amazon Q Developer; Inspector Code Security</td></tr>
+          <tr><td>CI · build</td><td>SAST (<em>Static Application Security Testing</em>), SCA (<em>Software Composition Analysis</em>), scan de IaC</td><td>SonarQube, Snyk, Checkov</td></tr>
+          <tr><td>CI · artefato</td><td>Scan da imagem antes do push</td><td>Trivy; depois, ECR Enhanced Scanning (Amazon Inspector)</td></tr>
+          <tr><td>CD · staging</td><td>DAST (<em>Dynamic Application Security Testing</em>)</td><td>OWASP ZAP</td></tr>
+          <tr><td>CD · produção</td><td>Borda, identidade e criptografia</td><td>AWS WAF com regras de taxa (<em>rate-based</em>); IAM com menor privilégio; KMS; TLS 1.2+</td></tr>
+          <tr><td>MON</td><td>Detecção e auditoria</td><td>GuardDuty, Security Hub, CloudTrail, AWS Config</td></tr>
+          <tr><td>FEEDBACK</td><td>Achado vira correção</td><td>A correção volta pelo mesmo pipeline e seus gates</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      <div class="card small"><strong>Segredos</strong>: credenciais no <strong>AWS Secrets Manager</strong>, com rotação automática; o <code>buildspec.yml</code> os lê por <code>env.secrets-manager</code>, nunca do código.</div>
+      <div class="card small"><strong>Menor privilégio</strong>: cada task ECS tem sua própria Task Role; ARNs específicos em vez de <code>*</code>; IAM Access Analyzer.</div>
+      <div class="card case small"><strong>LGPD</strong> <span class="badge hip">Hipotético</span>: dados de pacientes criptografados (KMS e TLS), acesso só pelo <code>patient-service</code> e pelo <code>prescription-service</code>, trilha de auditoria no CloudTrail, exportação e exclusão de dados.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 · CD + ARQUITETURA -->
+<section class="slide" id="cd" data-stage="cd" aria-label="Etapa 4: entrega e implantação contínua e arquitetura"
+  data-sec="DAST em staging · aprovação manual · WAF com regras de taxa · JWT validado uma vez · tasks em sub-redes privadas">
+  <div class="slide-head"><span class="stage-pill">Etapa 4 · CD</span><h2>Entrega segura e arquitetura de produção</h2></div>
+  <p class="small"><span class="badge doc">Documentado</span> Imagem aprovada (tag = SHA) → <strong>staging</strong> no ECS Fargate (testes de integração + DAST) → <strong>aprovação manual</strong> → <strong>CodeDeploy Canary</strong> 10% → 100% <span class="badge hip">Hipotético</span> → health check → <strong>rollback automático</strong> se falhar.</p>
+  <div class="demo" id="arch-demo">
+    <div class="toolbar">
+      <button class="btn quick" data-action="flow">▶ Modo rápido: requisição de ponta a ponta</button>
+      <button class="btn" data-action="reset">Reset</button>
+      <span class="small muted">Clique em um componente para ver o papel dele e a etapa do ciclo.</span>
+    </div>
+    <div class="cols c-60-40">
+      <div class="arch" id="arch" role="group" aria-label="Arquitetura da HealthTrack (seção 6.1 do estudo)"></div>
+      <div class="card info small" id="arch-info" aria-live="polite"><strong>Fluxo POST /v1/appointments</strong> (seção 6.2): acione o modo rápido ou escolha um componente.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · MON -->
+<section class="slide" id="mon" data-stage="mon" aria-label="Etapa 5: monitoramento e observabilidade"
+  data-sec="GuardDuty (ameaças) · Security Hub (postura) · CloudTrail (auditoria de API) · AWS Config (conformidade)">
+  <div class="slide-head"><span class="stage-pill">Etapa 5 · MON</span><h2>Monitoramento: os sinais vitais da aplicação</h2><span class="badge doc">Documentado</span></div>
+  <div class="cols">
+    <div class="col">
+      <table class="t">
+        <thead><tr><th>Pilar</th><th>Pergunta</th><th>Na HealthTrack</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Métricas</strong></td><td>O que está acontecendo?</td><td>CloudWatch: latência p50/p95/p99, taxa de erros, CPU e memória das tasks</td></tr>
+          <tr><td><strong>Logs</strong></td><td>Por que aconteceu?</td><td>JSON estruturado no CloudWatch Logs, consultado com Logs Insights</td></tr>
+          <tr><td><strong>Traces</strong></td><td>Onde aconteceu?</td><td>OpenTelemetry/ADOT → coletor <em>sidecar</em> → AWS X-Ray (Trace Map)</td></tr>
+        </tbody>
+      </table>
+      <div class="card case small"><strong>Alarmes</strong> <span class="badge hip">Hipotético</span>: taxa de erros &gt; 2% notifica via SNS; latência p99 &gt; 2 s alerta a engenharia. <span class="badge impl">Implementado no CDK</span></div>
+      <div class="card small">O SDK/daemon do X-Ray está em <strong>modo de manutenção desde 25/02/2026</strong>; a AWS recomenda instrumentar com OpenTelemetry (ADOT) e enviar os traces ao X-Ray. <a class="badge doc" href="https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-migration.html" target="_blank" rel="noopener">AWS</a></div>
+    </div>
+    <div class="col">
+      <h3>Logs Insights <span class="badge doc">Estudo, seção 5.8</span></h3>
+<pre class="code"><span class="c"># As 10 requisições com erro (status &gt;= 500) mais lentas
+# no intervalo selecionado no console</span>
+fields @timestamp, status_code, duration, @message
+| filter status_code &gt;= 500
+| sort duration desc
+| limit 10</pre>
+      <h3>Log real do nosso container <span class="badge impl">Implementado</span></h3>
+<pre class="code">{"timestamp":"2026-11-17T14:40:53.822Z","level":"warn",
+ "service":"scheduling-service",
+ "traceId":"0b5b6fd37fcf88951b5807343c2cfbc8",
+ "route":"POST /v1/appointments","status":401,
+ "durationMs":0,"message":"jwt rejected: bad_signature"}</pre>
+      <p class="small muted">Sem nenhum dado de paciente: o tipo do log nem tem campo para isso (LGPD).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · FEEDBACK -->
+<section class="slide" id="feedback" data-stage="fb" aria-label="Etapa 6: feedback e melhoria contínua"
+  data-sec="A correção volta pelo mesmo pipeline e passa por todos os gates de segurança antes do deploy">
+  <div class="slide-head"><span class="stage-pill">Etapa 6 · FEEDBACK</span><h2>O ciclo fecha: do alarme de volta ao código</h2><span class="badge hip">Hipotético · seção 5.8</span></div>
+  <div class="demo" id="diag-demo">
+    <div class="toolbar">
+      <button class="btn primary" data-action="next">Próximo passo</button>
+      <button class="btn quick" data-action="quick">▶ Modo rápido: diagnóstico completo</button>
+      <button class="btn" data-action="reset">Reset</button>
+    </div>
+    <ol class="steps" id="diag-steps"></ol>
+    <div class="cols">
+      <svg class="chart" id="diag-chart" viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="Latência p99 do scheduling-service"></svg>
+      <div class="card small info" id="diag-detail" aria-live="polite">Clique em “Próximo passo” ou no modo rápido.</div>
+    </div>
+  </div>
+  <table class="t">
+    <thead><tr><th>Antes → depois (estimativas do estudo, seção 7.1)</th><th>Deploy</th><th>Tempo de deploy</th><th>Recuperação</th><th>Detecção de vulnerabilidades</th></tr></thead>
+    <tbody><tr><td><span class="badge hip">Hipotético</span></td><td>quinzenal → diário</td><td>2–4 h → 15–25 min</td><td>~3 h → &lt; 30 min</td><td>auditoria semestral → cada build</td></tr></tbody>
+  </table>
+</section>
+
+<!-- 11 · EVIDÊNCIAS -->
+<section class="slide" id="evidencias" data-stage="none" aria-label="Evidências e honestidade técnica"
+  data-sec="Nenhuma credencial de nuvem e nenhum segredo no repositório; o segredo falso existe só na demo do navegador">
+  <div class="slide-head"><h2>Evidências e honestidade técnica</h2><span class="badge impl">Implementado</span></div>
+  <p class="question card"><strong>A API roda no navegador e em container local; a AWS está representada pela arquitetura e pelo CDK validado, sem deploy.</strong></p>
+  <div class="cols">
+    <div class="col">
+      <table class="t">
+        <thead><tr><th>Parte</th><th>Real</th><th>Simulado</th></tr></thead>
+        <tbody>
+          <tr><td>Núcleo + API</td><td>TypeScript, Jest, Express, Docker</td><td>RDS, Redis e SQS em memória</td></tr>
+          <tr><td>CI</td><td>GitHub Actions: runs reais</td><td>Sem push e sem deploy</td></tr>
+          <tr><td>CDK</td><td><code>cdk synth</code> + cdk-nag</td><td>Conta fictícia, sem deploy</td></tr>
+          <tr><td>Demos</td><td>Núcleo real no navegador</td><td>Pipeline, métricas e traces</td></tr>
+          <tr><td>HealthTrack</td><td>—</td><td>Empresa e números fictícios</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Runs do GitHub Actions: <a id="run-green" href="https://github.com/renzovaz/devsecops-healthtrack/actions" target="_blank" rel="noopener"><code>main</code> verde</a> · <a id="run-red" href="https://github.com/renzovaz/devsecops-healthtrack/actions" target="_blank" rel="noopener">PR com <code>lodash@4.17.20</code> bloqueado</a></p>
+    </div>
+    <div class="col">
+      <h3>Aprendizados (estudo, seção 8) <span class="badge doc">Documentado</span></h3>
+      <ul class="tight small">
+        <li><strong>DevOps é cultural</strong>: velocidade e estabilidade não são conflitantes.</li>
+        <li><strong>DevSecOps é essencial</strong> com dados de saúde: Shift Left transforma a segurança em acelerador.</li>
+        <li><strong>A AWS exige planejamento</strong>: escolher os serviços certos e gerenciá-los via IaC.</li>
+        <li><strong>Observabilidade</strong> é tão importante quanto a funcionalidade.</li>
+        <li><strong>A jornada é gradual</strong>: CI/CD → scans → monitoramento → maturidade.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 12 · REFERÊNCIAS -->
+<section class="slide" id="referencias" data-stage="none" aria-label="Referências"
+  data-sec="A segurança acompanha todas as etapas do ciclo: é uma camada, não um bloco">
+  <div class="slide-head"><h2>Referências</h2><span class="badge doc">Documentado</span></div>
+  <ul class="refs">
+    <li>FORSGREN, N.; HUMBLE, J.; KIM, G. <em>Accelerate</em>. IT Revolution, 2018.</li>
+    <li>HUMBLE, J.; FARLEY, D. <em>Continuous Delivery</em>. Addison-Wesley, 2010.</li>
+    <li>DORA. <a href="https://dora.dev/research/2024/dora-report/" target="_blank" rel="noopener">Accelerate State of DevOps Report 2024</a></li>
+    <li>DORA. <a href="https://dora.dev/guides/dora-metrics/" target="_blank" rel="noopener">DORA's software delivery performance metrics</a></li>
+    <li>AWS. <a href="https://aws.amazon.com/devops/what-is-devops/" target="_blank" rel="noopener">What is DevOps?</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/wellarchitected/latest/devops-guidance/devops-guidance.html" target="_blank" rel="noopener">Well-Architected DevOps Guidance</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/codepipeline/latest/userguide/" target="_blank" rel="noopener">CodePipeline</a> · <a href="https://docs.aws.amazon.com/codebuild/latest/userguide/" target="_blank" rel="noopener">CodeBuild</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/dtconsole/latest/userguide/welcome-connections.html" target="_blank" rel="noopener">CodeConnections</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/codeguru/latest/reviewer-ug/codeguru-reviewer-availability-change.html" target="_blank" rel="noopener">CodeGuru Reviewer availability change</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/" target="_blank" rel="noopener">Amazon ECS</a> · <a href="https://docs.aws.amazon.com/cdk/v2/guide/" target="_blank" rel="noopener">AWS CDK</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/" target="_blank" rel="noopener">IAM</a> · <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/" target="_blank" rel="noopener">Secrets Manager</a> · <a href="https://docs.aws.amazon.com/kms/latest/developerguide/" target="_blank" rel="noopener">KMS</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/private-integration.html" target="_blank" rel="noopener">API Gateway: private integrations (VPC Link)</a> · <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html" target="_blank" rel="noopener">AWS WAF</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/" target="_blank" rel="noopener">CloudWatch</a> · <a href="https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-migration.html" target="_blank" rel="noopener">X-Ray → OpenTelemetry</a> · <a href="https://aws-otel.github.io" target="_blank" rel="noopener">ADOT</a></li>
+    <li>AWS. <a href="https://docs.aws.amazon.com/inspector/latest/user/" target="_blank" rel="noopener">Inspector</a> · <a href="https://docs.aws.amazon.com/guardduty/latest/ug/" target="_blank" rel="noopener">GuardDuty</a> · <a href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/" target="_blank" rel="noopener">CloudTrail</a></li>
+    <li><a href="https://opentelemetry.io" target="_blank" rel="noopener">OpenTelemetry</a> · <a href="https://owasp.org" target="_blank" rel="noopener">OWASP</a></li>
+    <li>Implementação: <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions</a> · <a href="https://codeql.github.com/docs/" target="_blank" rel="noopener">CodeQL</a> · <a href="https://trivy.dev/" target="_blank" rel="noopener">Trivy</a> · <a href="https://github.com/gitleaks/gitleaks" target="_blank" rel="noopener">gitleaks</a> · <a href="https://github.com/cdklabs/cdk-nag" target="_blank" rel="noopener">cdk-nag</a></li>
+  </ul>
+  <p class="small muted">Texto-base: estudo dirigido “DevOps e DevSecOps na AWS” (seção 9). Código: <a href="https://github.com/renzovaz/devsecops-healthtrack" target="_blank" rel="noopener">github.com/renzovaz/devsecops-healthtrack</a></p>
+</section>
+
+
+
+</main>
+
+<footer class="chrome" id="chrome">
+  <div class="vitals">
+    <button class="nav-btn" id="prev" aria-label="Slide anterior">←</button>
+    <div class="vitals-track"><svg id="vitals" viewBox="0 0 1000 46" preserveAspectRatio="none" role="img" aria-label="Progresso da apresentação no ciclo"></svg><div class="stage-labels" id="stage-labels" aria-hidden="true"></div></div>
+    <button class="nav-btn" id="next" aria-label="Próximo slide">→</button>
+    <span class="counter" id="counter" aria-live="off">1/12</span>
+  </div>
+  <div class="secband"><b>Segurança</b><span id="secband-text"></span></div>
+</footer>
+</div>
+
+<script src="js/env-check.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

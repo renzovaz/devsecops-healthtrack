@@ -1,0 +1,13 @@
+{
+  "app": "npx tsx bin/app.ts",
+  "context": {
+    "imageTag": "0000000000000000000000000000000000000000",
+    "certificateArn": "arn:aws:acm:sa-east-1:111111111111:certificate/00000000-0000-0000-0000-000000000000",
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "availability-zones:account=111111111111:region=sa-east-1": [
+      "sa-east-1a",
+      "sa-east-1b",
+      "sa-east-1c"
+    ]
+  }
+}

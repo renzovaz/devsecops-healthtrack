@@ -1,0 +1,8 @@
+node_modules/
+core/dist/
+api/dist/
+coverage/
+infra/cdk.out/
+infra/node_modules/
+*.log
+.env

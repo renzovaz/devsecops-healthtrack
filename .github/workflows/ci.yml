@@ -1,0 +1,144 @@
+# Equivalente didático do pipeline do estudo (AWS CodePipeline + CodeBuild, seção 5.6).
+# Mesma ordem do buildspec.yml corrigido: testes, SCA, SAST, IaC scan, build da imagem com
+# tag = SHA do commit e scan da imagem. Diferença deliberada: NÃO há push para registry
+# nem deploy na AWS (o trabalho não usa credenciais de nuvem).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Nenhuma permissão por padrão; cada job declara só o que precisa.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  # Ferramentas executadas por imagem fixada por versão + digest.
+  TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+
+jobs:
+  test:
+    name: Testes (Jest) e JS do núcleo atualizado
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Testes do núcleo e da API (Jest)
+        run: npm test
+      - name: JS commitado em docs/js/core corresponde ao TypeScript?
+        run: npm run check:core-drift
+
+  sast:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+
+  sca:
+    name: SCA (npm audit e Trivy fs)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: npm audit (aplicação)
+        run: npm audit --audit-level=high
+      - name: npm audit (infraestrutura CDK)
+        run: npm audit --audit-level=high
+        working-directory: infra
+      - name: Trivy fs (dependências declaradas nos lockfiles)
+        run: >
+          docker run --rm -v "$PWD:/src:ro" "$TRIVY_IMAGE"
+          fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress /src
+
+  secrets:
+    name: Segredos (gitleaks)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # varre o histórico inteiro, não só o último commit
+          persist-credentials: false
+      - name: gitleaks (histórico do Git)
+        run: docker run --rm -v "$PWD:/repo:ro" "$GITLEAKS_IMAGE" git /repo --redact --verbose --exit-code 1
+
+  iac:
+    name: IaC (cdk synth e cdk-nag)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - run: npm ci
+      - name: Testes da stack (Jest)
+        run: npm test
+      - name: cdk synth com cdk-nag (AwsSolutions); sem deploy e sem credenciais
+        run: npx cdk synth --quiet
+
+  image:
+    name: Imagem (build com tag = SHA e Trivy)
+    runs-on: ubuntu-24.04
+    # Só constrói a imagem se todos os gates anteriores passaram (como o on-failure: ABORT do buildspec).
+    needs: [test, sast, sca, secrets, iac]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: docker build (tag imutável = SHA do commit, nunca latest)
+        run: docker build -f api/Dockerfile -t "scheduling-service:${GITHUB_SHA}" .
+      - name: Trivy image (HIGH/CRITICAL com correção disponível bloqueiam)
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE"
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
+          "scheduling-service:${GITHUB_SHA}"
+      - name: Sem push e sem deploy
+        run: |
+          echo "Imagem scheduling-service:${GITHUB_SHA} aprovada nos gates."
+          echo "No estudo, este seria o momento do docker push para o Amazon ECR."
+          echo "Aqui não há push para registry nem deploy na AWS."

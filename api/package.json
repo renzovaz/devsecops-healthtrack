@@ -1,0 +1,17 @@
+{
+  "name": "@healthtrack/api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API local do scheduling-service: o mesmo núcleo (@healthtrack/core) atrás de um Express.",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "jest --coverage"
+  },
+  "dependencies": {
+    "@healthtrack/core": "1.0.0",
+    "express": "^5.1.0"
+  }
+}

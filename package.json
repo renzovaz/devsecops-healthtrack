@@ -1,0 +1,30 @@
+{
+  "name": "devsecops-healthtrack",
+  "private": true,
+  "description": "Estudo de caso acadêmico: DevOps e DevSecOps na AWS (HealthTrack Solutions, empresa fictícia).",
+  "license": "MIT",
+  "workspaces": [
+    "core",
+    "api"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:core": "npm run build -w core && node scripts/copy-core.mjs",
+    "check:core-drift": "npm run build:core && git diff --exit-code -- docs/js/core",
+    "build": "npm run build:core && npm run build -w api",
+    "test": "npm test -w core && npm test -w api",
+    "serve": "node scripts/serve-docs.mjs"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.0",
+    "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  }
+}
